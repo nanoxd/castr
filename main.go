@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,6 +14,13 @@ import (
 	"github.com/nanoxd/castr/config"
 	"github.com/nanoxd/castr/rss"
 )
+
+// MimeTypeMap list all the usable extensions
+var mimeTypeMap = map[string]string{
+	".mp3": "audio/mpeg",
+	".m4a": "audio/m4a",
+	".m4b": "audio/m4b",
+}
 
 func escapeURL(str string) (string, error) {
 	u, err := url.Parse(str)
@@ -46,11 +54,11 @@ func FeedHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	feed_url, err := url.Parse(config.RSS.URL)
+	feedURL, err := url.Parse(config.RSS.URL)
 	if err != nil {
 		panic(err)
 	}
-	feed_url.Path = config.Server.FeedPath
+	feedURL.Path = config.Server.FeedPath
 
 	feed := rss.RSS{
 		XMLXmlnsAtom:   "http://www.w3.org/2005/Atom",
@@ -62,7 +70,7 @@ func FeedHandler(w http.ResponseWriter, r *http.Request) {
 		Description: config.RSS.Description,
 		Link:        link.String(),
 		AtomLink: &rss.AtomLink{
-			Href: feed_url.String(),
+			Href: feedURL.String(),
 			Rel:  "self",
 			Type: "application/rss+xml",
 		},
@@ -73,17 +81,32 @@ func FeedHandler(w http.ResponseWriter, r *http.Request) {
 		if info.IsDir() {
 			return nil
 		}
-		if !strings.HasSuffix(info.Name(), ".mp3") {
+
+		extension := ""
+		mime := ""
+
+		for ext, mimeType := range mimeTypeMap {
+			if strings.HasSuffix(info.Name(), ext) {
+				extension = ext
+				mime = mimeType
+				break
+			}
+		}
+
+		if extension == "" || mime == "" {
 			return nil
 		}
 
-		title := strings.Replace(info.Name(), ".mp3", "", 1)
+		fmt.Printf("Extension: %s Mime: %s\n", extension, mime)
+
+		title := strings.Replace(info.Name(), extension, "", 1)
+
 		pubDate := info.ModTime().Format(time.RFC1123)
 		url, err := escapeURL(config.RSS.URL + strings.Replace(path, config.Server.FileRoot, "", 1))
 		if err != nil {
 			panic(err)
 		}
-		enclosure := rss.Enclosure{URL: url, Type: "audio/mpeg", Length: info.Size()}
+		enclosure := rss.Enclosure{URL: url, Type: mime, Length: info.Size()}
 		item := rss.Item{
 			Title:     title,
 			PubDate:   pubDate,

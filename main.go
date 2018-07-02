@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/xml"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -96,8 +95,6 @@ func FeedHandler(w http.ResponseWriter, r *http.Request) {
 		if extension == "" || mime == "" {
 			return nil
 		}
-
-		fmt.Printf("Extension: %s Mime: %s\n", extension, mime)
 
 		title := strings.Replace(info.Name(), extension, "", 1)
 

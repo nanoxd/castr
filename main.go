@@ -30,6 +30,16 @@ func escapeURL(str string) (string, error) {
 	return u.String(), nil
 }
 
+func fileInfo(name string) (string, string) {
+	for extension, mimeType := range mimeTypeMap {
+		if strings.HasSuffix(name, extension) {
+			return extension, mimeType
+		}
+	}
+
+	return "", ""
+}
+
 func main() {
 	config := config.Config{}
 	if err := config.Load("config.toml"); err != nil {
@@ -82,17 +92,7 @@ func FeedHandler(w http.ResponseWriter, r *http.Request) {
 			return nil
 		}
 
-		extension := ""
-		mime := ""
-
-		for ext, mimeType := range mimeTypeMap {
-			if strings.HasSuffix(info.Name(), ext) {
-				extension = ext
-				mime = mimeType
-				break
-			}
-		}
-
+		extension, mime := fileInfo(info.Name())
 		if extension == "" || mime == "" {
 			return nil
 		}
